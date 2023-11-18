@@ -17,7 +17,7 @@ runs:
         echo -e "# Changelog\n" > NEXT.md
         echo -e "${{ inputs.release == 'patch' && '###' || '##' }} [${{ inputs.next_version }}](${{ github.server_url }}/${{ github.repository }}/compare/${{ inputs.previous_version }}...v${{ inputs.next_version }}) ($(date +'%Y-%m-%d'))\n" >> NEXT.md
         echo -e "${{ inputs.notes }}\n" >> NEXT.md
-        cat CHANGELOG.md | sed -e '1,4d' >> NEXT.md && mv NEXT.md CHANGELOG.md
+        cat CHANGELOG.md | sed -e '1,1d' >> NEXT.md && mv NEXT.md CHANGELOG.md
       shell: bash
 
     - id: commit
