@@ -68,9 +68,15 @@ The release type is determined by scanning PR titles for keywords:
 **Usage:**
 
 ```yaml
+- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0  # Required to access tags
+
 - id: changelog
   uses: flowcanon/release-builder/build-changelog@v2
 ```
+
+> **Note:** `fetch-depth: 0` is required so the action can find previous tags.
 
 ---
 
@@ -223,6 +229,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - id: changelog
         uses: flowcanon/release-builder/build-changelog@v2
