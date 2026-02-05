@@ -16,13 +16,9 @@ The release builder automatically generates changelogs from merged pull requests
    ```
    Tags must follow semver format (e.g., `v1.0.0`, `v0.1.0`). The changelog builder uses this to determine which PRs to include.
 
-2. **CHANGELOG.md file** - Create an initial changelog file with a header:
-   ```bash
-   echo "# Changelog" > CHANGELOG.md
-   git add CHANGELOG.md && git commit -m "chore: add changelog"
-   ```
+2. **package.json** (if using `package-version` action) - Your repository needs `package.json` and `package-lock.json` files with a `version` field.
 
-3. **package.json** (if using `package-version` action) - Your repository needs `package.json` and `package-lock.json` files with a `version` field.
+A `CHANGELOG.md` file is **not** required. If one doesn't exist, the `pull-request` action will create it automatically, noting the tag from which the changelog was introduced.
 
 ### Secrets
 
