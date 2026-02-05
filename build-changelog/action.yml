@@ -27,7 +27,7 @@ runs:
         outputFile: NEXT.md
         toTag: HEAD
       env:
-        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN || github.token }}
 
     - id: process-changelog
       run: |
