@@ -26,6 +26,8 @@ runs:
         configuration: ${{ github.action_path }}/config.json
         outputFile: NEXT.md
         toTag: HEAD
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
 
     - id: process_changelog
       run: |
