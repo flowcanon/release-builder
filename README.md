@@ -9,16 +9,18 @@ The release builder automatically generates changelogs from merged pull requests
 
 ### Required Setup
 
-1. **Initial release tag** - Create a semver tag to mark the starting point for changelog generation:
-   ```bash
-   git tag v0.0.1
-   git push origin v0.0.1
-   ```
-   Tags must follow semver format (e.g., `v1.0.0`, `v0.1.0`). The changelog builder uses this to determine which PRs to include.
+1. **package.json** (if using `package-version` action) - Your repository needs `package.json` and `package-lock.json` files with a `version` field.
 
-2. **package.json** (if using `package-version` action) - Your repository needs `package.json` and `package-lock.json` files with a `version` field.
+That's it. Both `CHANGELOG.md` and an initial release tag are **optional**:
 
-A `CHANGELOG.md` file is **not** required. If one doesn't exist, the `pull-request` action will create it automatically, noting the tag from which the changelog was introduced.
+- **No CHANGELOG.md?** The `pull-request` action creates one automatically, noting the tag from which the changelog was introduced.
+- **No previous tag?** The version defaults to `0.0.0`, so your first release will be `0.0.1` (or `0.1.0`/`1.0.0` based on PR titles).
+
+If you want to start from a specific version, create an initial tag:
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ### Secrets
 
