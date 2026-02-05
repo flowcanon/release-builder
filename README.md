@@ -5,6 +5,42 @@ used for rolling releases in our projects.
 
 The release builder automatically generates changelogs from merged pull requests since your last release tag. PR titles are collected and formatted into release notes - no manual changelog maintenance required.
 
+## 🎯 Controlling Release Versions
+
+**Any PR merged between release tags can control the next release version by including keywords in the PR title.**
+
+### How It Works
+
+The release builder scans all merged PRs between the last release tag and HEAD. If any PR title contains version keywords, the next release will use that version type:
+
+- **`[minor]`, `(minor)`, or `#minor`** → Next release will be a **minor version bump** (e.g., `1.2.3` → `1.3.0`)
+- **`[major]`, `(major)`, or `#major`** → Next release will be a **major version bump** (e.g., `1.2.3` → `2.0.0`)
+- **No keywords** → Defaults to **patch version bump** (e.g., `1.2.3` → `1.2.4`)
+
+### Examples
+
+To force a minor release, include `[minor]` in your PR title:
+- ✅ `Add new authentication feature [minor]`
+- ✅ `Implement user dashboard (minor)`
+- ✅ `Update API endpoints #minor`
+
+**Important:**
+- Keywords are case-insensitive
+- `[major]` takes precedence over `[minor]` if both appear
+- Only one PR with `[minor]` is needed to trigger a minor release for all PRs in that batch
+- The keyword can appear anywhere in the PR title
+
+### Example Scenario
+
+If you merge these PRs between releases:
+1. "Fix bug in login" (no keyword → patch)
+2. "Add new feature [minor]" (has keyword → minor)
+3. "Fix another bug" (no keyword, but still minor due to #2)
+
+The next release will be a **minor version bump** because at least one PR contained `[minor]`.
+
+---
+
 ## Prerequisites
 
 ### Required Setup
@@ -70,6 +106,13 @@ The release type is determined by scanning PR titles for keywords:
 - `[major]`, `(major)`, or `#major` - triggers a major version bump
 - `[minor]`, `(minor)`, or `#minor` - triggers a minor version bump
 - Otherwise defaults to `patch`
+
+**How version detection works:**
+- All merged PRs between the last release tag and HEAD are scanned
+- If **any** PR title contains `[minor]`, `(minor)`, or `#minor`, the entire release batch becomes a minor version bump
+- If **any** PR title contains `[major]`, `(major)`, or `#major`, the entire release batch becomes a major version bump (takes precedence over minor)
+- Keywords are case-insensitive and can appear anywhere in the PR title
+- If no keywords are found, defaults to patch version bump
 
 **Usage:**
 
