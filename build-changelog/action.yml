@@ -3,7 +3,7 @@ name: Build changelog
 inputs:
   token:
     description: 'GitHub token for API access'
-    required: false
+    required: true
 
 outputs:
   has_prs:
@@ -31,7 +31,7 @@ runs:
         configuration: ${{ github.action_path }}/config.json
         outputFile: NEXT.md
         toTag: HEAD
-        token: ${{ inputs.token || github.token }}
+        token: ${{ inputs.token }}
 
     - id: process_changelog
       run: |
