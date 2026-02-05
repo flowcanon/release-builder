@@ -1,5 +1,10 @@
 name: Build changelog
 
+inputs:
+  token:
+    description: 'GitHub token for API access'
+    required: false
+
 outputs:
   has-prs:
     value: ${{ steps.build-changelog.outputs.categorized_prs || steps.build-changelog.outputs.uncategorized_prs }}
@@ -26,8 +31,7 @@ runs:
         configuration: ${{ github.action_path }}/config.json
         outputFile: NEXT.md
         toTag: HEAD
-      env:
-        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN || github.token }}
+        token: ${{ inputs.token || github.token }}
 
     - id: process-changelog
       run: |
