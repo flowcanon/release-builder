@@ -9,7 +9,7 @@ The release builder automatically generates changelogs from merged pull requests
 
 ### Required Setup
 
-1. **package.json** (if using `package-version` action) - Your repository needs `package.json` and `package-lock.json` files with a `version` field.
+1. **Version file** (if using `package-version` action) - Your repository needs either `package.json`/`package-lock.json` (npm) or `pyproject.toml` (Python) with a `version` field.
 
 That's it. Both `CHANGELOG.md` and an initial release tag are **optional**:
 
@@ -90,7 +90,9 @@ The release type is determined by scanning PR titles for keywords:
 
 ### package-version
 
-Updates the version field in `package.json` and `package-lock.json` files.
+Updates the version field in your project's package file. Automatically detects the project type:
+- **npm**: Updates `package.json` and `package-lock.json`
+- **Python**: Updates `pyproject.toml`
 
 **Inputs:**
 
