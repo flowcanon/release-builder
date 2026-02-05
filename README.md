@@ -70,13 +70,13 @@ The release type is determined by scanning PR titles for keywords:
 ```yaml
 - uses: actions/checkout@v4
   with:
-    fetch-depth: 0  # Required to access tags
+    fetch-depth: 0
 
 - id: changelog
   uses: flowcanon/release-builder/build-changelog@v2
 ```
 
-> **Note:** `fetch-depth: 0` is required so the action can find previous tags.
+> **Note:** `fetch-depth: 0` is required so the action can access full git history for tag resolution.
 
 ---
 
