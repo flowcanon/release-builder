@@ -2,3 +2,262 @@
 
 This repository contains a collection of [GitHub composite actions](https://docs.github.com/en/actions/creating-actions/creating-a-composite-action)
 used for rolling releases in our projects.
+
+## Actions
+
+### build-changelog
+
+Builds a changelog from PRs merged since the last release tag. Automatically determines the next semantic version based on PR title conventions.
+
+**Outputs:**
+
+| Output | Description |
+|--------|-------------|
+| `has_prs` | Whether any PRs were found since the last release |
+| `previous_version` | The previous release tag |
+| `next_version` | The calculated next version |
+| `notes` | The generated changelog notes |
+| `release` | The release type (`major`, `minor`, or `patch`) |
+
+**Semantic Versioning:**
+
+The release type is determined by scanning PR titles for keywords:
+- `[major]`, `(major)`, or `#major` - triggers a major version bump
+- `[minor]`, `(minor)`, or `#minor` - triggers a minor version bump
+- Otherwise defaults to `patch`
+
+**Usage:**
+
+```yaml
+- id: changelog
+  uses: flowcanon/release-builder/build-changelog@v2
+```
+
+---
+
+### package-version
+
+Updates the version field in `package.json` and `package-lock.json` files.
+
+**Inputs:**
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `version` | Yes | The version string to set |
+
+**Usage:**
+
+```yaml
+- uses: flowcanon/release-builder/package-version@v2
+  with:
+    version: ${{ needs.build_changelog.outputs.next_version }}
+```
+
+---
+
+### pull-request
+
+Creates a release pull request with an updated `CHANGELOG.md` file.
+
+**Inputs:**
+
+| Input | Required | Description |
+|-------|----------|-------------|
+| `next_version` | Yes | The version being released |
+| `notes` | Yes | The changelog notes for this release |
+| `previous_version` | Yes | The previous version tag |
+| `release` | Yes | The release type (`major`, `minor`, or `patch`) |
+
+**Usage:**
+
+```yaml
+- uses: flowcanon/release-builder/pull-request@v2
+  with:
+    next_version: ${{ needs.build_changelog.outputs.next_version }}
+    notes: ${{ needs.build_changelog.outputs.notes }}
+    previous_version: ${{ needs.build_changelog.outputs.previous_version }}
+    release: ${{ needs.build_changelog.outputs.release }}
+```
+
+---
+
+### slack-message
+
+Sends Slack notifications about release status. Can send an initial "pending" message and update it with the final status.
+
+**Inputs:**
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `channel-id` | Yes | - | The Slack channel ID to post to |
+| `message-id` | No | - | Message timestamp to update (for status updates) |
+| `status` | No | `pending` | Status of the release (`pending`, `success`, `failure`) |
+
+**Outputs:**
+
+| Output | Description |
+|--------|-------------|
+| `channel-id` | The channel ID (pass-through) |
+| `message-id` | The message timestamp (for subsequent updates) |
+
+**Required Environment Variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_TOKEN` | GitHub token for API access |
+| `PROJECT_NAME` | Name of the project being released |
+| `SLACK_BOT_TOKEN` | Slack bot token for posting messages |
+| `TARGET_NAME` | Display name of the deployment target |
+| `TARGET_URL` | URL of the deployment target |
+| `RELEASE_PENDING_ICON` | (Optional) Icon URL for pending status |
+| `RELEASE_FAILURE_ICON` | (Optional) Icon URL for failure status |
+
+**Usage:**
+
+```yaml
+# Send initial pending message
+- id: message
+  uses: flowcanon/release-builder/slack-message@v2
+  with:
+    channel-id: ${{ env.SLACK_CHANNEL }}
+
+# Update with final status
+- if: always()
+  uses: flowcanon/release-builder/slack-message@v2
+  with:
+    channel-id: ${{ steps.message.outputs.channel-id }}
+    message-id: ${{ steps.message.outputs.message-id }}
+    status: ${{ steps.deploy.conclusion }}
+```
+
+---
+
+## Complete Example
+
+Here's a complete workflow that detects version changes, builds a changelog, and creates a release pull request:
+
+```yaml
+name: Release builder
+
+on:
+  push:
+    branches:
+      - master
+
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: Force deploy
+        type: boolean
+      force_pr:
+        description: Force pull request
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  detect_release:
+    name: Detect release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: tag
+        uses: salsify/action-detect-and-tag-new-version@v2
+        with:
+          tag-annotation-template: |
+            chore(release): {VERSION}
+
+    outputs:
+      created_tag: ${{ steps.tag.outputs.tag }}
+      current_version: ${{ steps.tag.outputs.current-version }}
+      previous_version: ${{ steps.tag.outputs.previous-version }}
+
+  build_changelog:
+    name: Build changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: changelog
+        uses: flowcanon/release-builder/build-changelog@v2
+
+    outputs:
+      has_prs: ${{ steps.changelog.outputs.has_prs }}
+      previous_version: ${{ steps.changelog.outputs.previous_version }}
+      next_version: ${{ steps.changelog.outputs.next_version }}
+      notes: ${{ steps.changelog.outputs.notes }}
+      release: ${{ steps.changelog.outputs.release }}
+
+  create_pr:
+    if: inputs.force_pr || needs.build_changelog.outputs.has_prs
+    name: Create pull request
+    runs-on: ubuntu-latest
+    needs: build_changelog
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: flowcanon/release-builder/package-version@v2
+        with:
+          version: ${{ needs.build_changelog.outputs.next_version }}
+
+      - uses: flowcanon/release-builder/pull-request@v2
+        with:
+          next_version: ${{ needs.build_changelog.outputs.next_version }}
+          notes: ${{ needs.build_changelog.outputs.notes }}
+          previous_version: ${{ needs.build_changelog.outputs.previous_version }}
+          release: ${{ needs.build_changelog.outputs.release }}
+```
+
+### With Deployment and Slack Notifications
+
+For workflows that include deployment with Slack notifications:
+
+```yaml
+  deploy_release:
+    if: inputs.force_deploy || needs.detect_release.outputs.created_tag
+    name: Deploy release
+    runs-on: ubuntu-latest
+    needs: detect_release
+
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      PROJECT_NAME: my-project
+      RELEASE_FAILURE_ICON: ${{ vars.RELEASE_BUILDER_FAILURE_ICON }}
+      RELEASE_PENDING_ICON: ${{ vars.RELEASE_BUILDER_PENDING_ICON }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+      TARGET_NAME: example.com
+      TARGET_URL: https://example.com
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: message
+        uses: flowcanon/release-builder/slack-message@v2
+        with:
+          channel-id: ${{ env.SLACK_CHANNEL }}
+
+      - id: deploy
+        run: ./script/deploy
+
+      - if: always()
+        uses: flowcanon/release-builder/slack-message@v2
+        with:
+          channel-id: ${{ steps.message.outputs.channel-id }}
+          message-id: ${{ steps.message.outputs.message-id }}
+          status: ${{ steps.deploy.conclusion }}
+```
+
+## License
+
+See [LICENSE.md](LICENSE.md).
