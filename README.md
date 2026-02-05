@@ -3,11 +3,52 @@
 This repository contains a collection of [GitHub composite actions](https://docs.github.com/en/actions/creating-actions/creating-a-composite-action)
 used for rolling releases in our projects.
 
+The release builder automatically generates changelogs from merged pull requests since your last release tag. PR titles are collected and formatted into release notes - no manual changelog maintenance required.
+
+## Prerequisites
+
+### Required Setup
+
+1. **Initial release tag** - Create a semver tag to mark the starting point for changelog generation:
+   ```bash
+   git tag v0.0.1
+   git push origin v0.0.1
+   ```
+   Tags must follow semver format (e.g., `v1.0.0`, `v0.1.0`). The changelog builder uses this to determine which PRs to include.
+
+2. **CHANGELOG.md file** - Create an initial changelog file with a header:
+   ```bash
+   echo "# Changelog" > CHANGELOG.md
+   git add CHANGELOG.md && git commit -m "chore: add changelog"
+   ```
+
+3. **package.json** (if using `package-version` action) - Your repository needs `package.json` and `package-lock.json` files with a `version` field.
+
+### Secrets
+
+| Secret | Required For | Description |
+|--------|--------------|-------------|
+| `GITHUB_TOKEN` | All actions | Automatically provided by GitHub Actions |
+| `SLACK_BOT_TOKEN` | `slack-message` | Slack bot token for posting notifications |
+| `SLACK_CHANNEL` | `slack-message` | Slack channel ID for notifications |
+
+### Repository Variables (Optional)
+
+| Variable | Description |
+|----------|-------------|
+| `RELEASE_BUILDER_PENDING_ICON` | Icon URL for pending release status |
+| `RELEASE_BUILDER_FAILURE_ICON` | Icon URL for failed release status |
+
 ## Actions
 
 ### build-changelog
 
-Builds a changelog from PRs merged since the last release tag. Automatically determines the next semantic version based on PR title conventions.
+Builds a changelog from PRs merged since the last release tag. The action automatically:
+- Finds all merged PRs between the previous tag and HEAD
+- Generates formatted release notes from PR titles
+- Determines the next semantic version based on PR title conventions
+
+No existing changelog content is required - notes are generated entirely from your merged PRs.
 
 **Outputs:**
 
