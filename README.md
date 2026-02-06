@@ -84,12 +84,6 @@ Builds a changelog from PRs merged since the last release tag. The action automa
 
 No existing changelog content is required - notes are generated entirely from your merged PRs.
 
-**Inputs:**
-
-| Input | Required | Description |
-|-------|----------|-------------|
-| `token` | Yes | GitHub token for API access (use `${{ secrets.GITHUB_TOKEN }}`) |
-
 **Outputs:**
 
 | Output | Description |
@@ -123,8 +117,6 @@ The release type is determined by scanning PR titles for keywords:
 
 - id: changelog
   uses: flowcanon/release-builder/build-changelog@v2
-  with:
-    token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 > **Note:** `fetch-depth: 0` is required so the action can access full git history for tag resolution.
@@ -287,8 +279,6 @@ jobs:
 
       - id: changelog
         uses: flowcanon/release-builder/build-changelog@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       has_prs: ${{ steps.changelog.outputs.has_prs }}
