@@ -13,7 +13,25 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: |
+    - id: guard
+      run: |
+        git fetch --tags --force
+        if git rev-parse "v${{ inputs.next-version }}" >/dev/null 2>&1; then
+          echo "::warning::Tag v${{ inputs.next-version }} already exists — skipping PR creation"
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        latest_tag=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+        if [ -n "$latest_tag" ] && [ "$latest_tag" != "${{ inputs.previous-version }}" ]; then
+          echo "::warning::Latest tag is $latest_tag, expected ${{ inputs.previous-version }} — skipping stale PR creation"
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        echo "skip=false" >> "$GITHUB_OUTPUT"
+      shell: bash
+
+    - if: steps.guard.outputs.skip != 'true'
+      run: |
         echo -e "# Changelog\n" > NEXT.md
         echo -e "${{ inputs.release == 'patch' && '###' || '##' }} [${{ inputs.next-version }}](${{ github.server_url }}/${{ github.repository }}/compare/${{ inputs.previous-version }}...v${{ inputs.next-version }}) ($(date +'%Y-%m-%d'))\n" >> NEXT.md
         echo -e "${{ inputs.notes }}\n" >> NEXT.md
@@ -27,9 +45,11 @@ runs:
       shell: bash
 
     - id: commit
+      if: steps.guard.outputs.skip != 'true'
       uses: pr-mpt/actions-commit-hash@v3
 
-    - uses: peter-evans/create-pull-request@v6
+    - if: steps.guard.outputs.skip != 'true'
+      uses: peter-evans/create-pull-request@v6
       with:
         title: Release ${{ inputs.next-version }}
         body: |
