@@ -13,8 +13,10 @@ runs:
           echo "type=npm" >> $GITHUB_OUTPUT
         elif [ -f pyproject.toml ]; then
           echo "type=python" >> $GITHUB_OUTPUT
+        elif [ -f VERSION ]; then
+          echo "type=version-file" >> $GITHUB_OUTPUT
         else
-          echo "::error::No package.json or pyproject.toml found"
+          echo "::error::No package.json, pyproject.toml, or VERSION file found"
           exit 1
         fi
       shell: bash
@@ -49,4 +51,9 @@ runs:
     - if: steps.detect.outputs.type == 'python'
       run: |
         sed -i 's/^version = ".*"/version = "${{ inputs.version }}"/' pyproject.toml
+      shell: bash
+
+    # Plain VERSION file
+    - if: steps.detect.outputs.type == 'version-file'
+      run: echo "${{ inputs.version }}" > VERSION
       shell: bash

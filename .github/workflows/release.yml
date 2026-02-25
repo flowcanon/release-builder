@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - v2
+
+  workflow_dispatch:
+    inputs:
+      force_pr:
+        description: Force pull request
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  detect_release:
+    name: Detect release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: tag
+        uses: salsify/action-detect-and-tag-new-version@v2
+        with:
+          version-command: cat VERSION
+          tag-annotation-template: |
+            chore(release): {VERSION}
+
+    outputs:
+      created-tag: ${{ steps.tag.outputs.tag }}
+
+  build_changelog:
+    name: Build changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: changelog
+        uses: ./build-changelog
+
+    outputs:
+      has-prs: ${{ steps.changelog.outputs.has-prs }}
+      previous-version: ${{ steps.changelog.outputs.previous-version }}
+      next-version: ${{ steps.changelog.outputs.next-version }}
+      notes: ${{ steps.changelog.outputs.notes }}
+      release: ${{ steps.changelog.outputs.release }}
+
+  create_pr:
+    if: inputs.force_pr || needs.build_changelog.outputs.has-prs
+    name: Create pull request
+    runs-on: ubuntu-latest
+    needs: build_changelog
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./package-version
+        with:
+          version: ${{ needs.build_changelog.outputs.next-version }}
+
+      - uses: ./pull-request
+        with:
+          next-version: ${{ needs.build_changelog.outputs.next-version }}
+          notes: ${{ needs.build_changelog.outputs.notes }}
+          previous-version: ${{ needs.build_changelog.outputs.previous-version }}
+          release: ${{ needs.build_changelog.outputs.release }}
