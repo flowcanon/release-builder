@@ -1,13 +1,18 @@
 name: Create pull request
+description: Creates a release pull request with an updated CHANGELOG.md file.
 
 inputs:
   next-version:
+    description: The version being released
     required: true
   notes:
+    description: The changelog notes for this release in markdown
     required: true
   previous-version:
+    description: The previous release tag
     required: true
   release:
+    description: "The release type: major, minor, or patch"
     required: true
 
 runs:

@@ -1,17 +1,23 @@
 name: Send slack message
+description: Sends or updates a Slack notification about release status.
 
 inputs:
   channel-id:
+    description: The Slack channel ID to post to
     required: true
   message-id:
+    description: Message timestamp to update (for status updates)
     required: false
   status:
+    description: "Release status: pending, success, or failure"
     default: "pending"
 
 outputs:
   channel-id:
+    description: The channel ID (pass-through)
     value: ${{ inputs.channel-id }}
   message-id:
+    description: The message timestamp for subsequent updates
     value: ${{ steps.send_message.outputs.ts }}
 
 runs:

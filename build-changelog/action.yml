@@ -1,15 +1,21 @@
 name: Build changelog
+description: Builds a changelog from PRs merged since the last release tag and calculates the next semantic version.
 
 outputs:
   has-prs:
+    description: Whether any PRs were found since the last release
     value: ${{ steps.build-changelog.outputs.categorized_prs || steps.build-changelog.outputs.uncategorized_prs }}
   previous-version:
+    description: The previous release tag
     value: ${{ steps.build-changelog.outputs.fromTag }}
   next-version:
+    description: The calculated next semantic version
     value: ${{ steps.next-version.outputs.version }}
   notes:
+    description: The generated changelog notes in markdown
     value: ${{ steps.process-changelog.outputs.changelog }}
   release:
+    description: "The release type: major, minor, or patch"
     value: ${{ steps.next-release.outputs.release }}
 
 runs:

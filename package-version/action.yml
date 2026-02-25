@@ -1,7 +1,9 @@
 name: Set package version
+description: Updates the version field in package.json, pyproject.toml, or a plain VERSION file.
 
 inputs:
   version:
+    description: The semantic version string to set
     required: true
 
 runs:
