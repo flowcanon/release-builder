@@ -26,6 +26,7 @@ jobs:
           fetch-depth: 0
 
       - id: tag
+        continue-on-error: true
         uses: salsify/action-detect-and-tag-new-version@v2
         with:
           version-command: cat VERSION
