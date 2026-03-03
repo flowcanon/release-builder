@@ -223,6 +223,77 @@ Sends Slack notifications about release status. Can send an initial "pending" me
 
 ---
 
+## Reusable Workflow (Recommended)
+
+The easiest way to use release-builder is with the reusable workflow. It encapsulates the full pipeline with correct job ordering, preventing race conditions between tag detection and changelog building.
+
+### Simple repo
+
+```yaml
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_pr:
+        description: Force pull request
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    uses: flowcanon/release-builder/.github/workflows/release-pipeline.yml@v2
+    with:
+      force_pr: ${{ inputs.force_pr || false }}
+```
+
+### With deploy step
+
+For repos that deploy on release, add a job that depends on the reusable workflow's outputs:
+
+```yaml
+jobs:
+  release:
+    uses: flowcanon/release-builder/.github/workflows/release-pipeline.yml@v2
+    with:
+      force_pr: ${{ inputs.force_pr || false }}
+
+  deploy:
+    if: needs.release.outputs.created-tag
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./script/deploy
+```
+
+### Inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `version-command` | string | `""` | Override for version detection (e.g., `poetry version --short`). Auto-detects from VERSION/package.json/pyproject.toml if empty. |
+| `force_pr` | boolean | `false` | Force PR creation even if no PRs are found |
+
+### Outputs
+
+| Output | Description |
+|--------|-------------|
+| `created-tag` | The tag if one was created (truthy means a release shipped) |
+| `current-version` | The current version from detect_release |
+
+### Why use the reusable workflow?
+
+When using composite actions directly, `detect_release` and `build_changelog` can run in parallel. If a PR title was renamed after the release PR was created, `build_changelog` may calculate a different version than what was tagged, opening a bogus release PR. The reusable workflow enforces `detect_release → build_changelog → create_pr` ordering, so `build_changelog` is skipped when a tag is created.
+
+## Composite Actions
+
+If you need more control (e.g., custom deploy steps between detection and changelog), you can use the composite actions directly. See the sections below.
+
 ## Example
 
 This repository uses its own actions for releases. See [`.github/workflows/release.yml`](.github/workflows/release.yml) for a working implementation.

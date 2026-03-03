@@ -18,6 +18,8 @@ Each directory contains an `action.yml` (the composite action definition) and su
 
 ## Release pipeline
 
+**Downstream repos should use the reusable workflow** (`.github/workflows/release-pipeline.yml`) rather than assembling jobs from composite actions. The reusable workflow enforces correct job ordering (`detect_release → build_changelog → create_pr`) and prevents race conditions where `build_changelog` runs in parallel with `detect_release`. This repo's own dogfood workflow (`.github/workflows/release.yml`) can't use the reusable workflow because it references actions via `./` local paths, so it handles ordering with explicit `needs` and `if` conditions.
+
 The actions are designed to run in this order:
 
 1. **build-changelog** — Finds merged PRs since the last git tag, generates release notes, determines version bump type (major/minor/patch) from PR title keywords, calculates the next semantic version.
