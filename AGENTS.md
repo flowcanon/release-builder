@@ -7,6 +7,7 @@ A collection of GitHub composite actions for automated rolling releases. The act
 ## Repository structure
 
 ```
+pipeline/           # Composite action that runs the full release pipeline sequentially
 build-changelog/    # Generates changelog and calculates next version from merged PRs
 package-version/    # Bumps version in package.json, pyproject.toml, or VERSION file
 pull-request/       # Creates a release PR with updated CHANGELOG.md
@@ -18,7 +19,7 @@ Each directory contains an `action.yml` (the composite action definition) and su
 
 ## Release pipeline
 
-**Downstream repos should use the reusable workflow** (`.github/workflows/release-pipeline.yml`) rather than assembling jobs from composite actions. The reusable workflow enforces correct job ordering (`detect_release → build_changelog → create_pr`) and prevents race conditions where `build_changelog` runs in parallel with `detect_release`. This repo's own dogfood workflow (`.github/workflows/release.yml`) can't use the reusable workflow because it references actions via `./` local paths, so it handles ordering with explicit `needs` and `if` conditions.
+**Downstream repos should use the `pipeline` composite action** (`flowcanon/release-builder/pipeline@v2`) rather than assembling jobs from individual composite actions. The pipeline action runs all steps sequentially in a single job (`checkout → detect_release → build_changelog → package_version → pull_request`), preventing race conditions where `build_changelog` runs in parallel with `detect_release`. This repo's own dogfood workflow (`.github/workflows/release.yml`) can't use the pipeline action because it references actions via `./` local paths, so it handles ordering with explicit `needs` and `if` conditions.
 
 The actions are designed to run in this order:
 

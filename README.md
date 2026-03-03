@@ -223,9 +223,9 @@ Sends Slack notifications about release status. Can send an initial "pending" me
 
 ---
 
-## Reusable Workflow (Recommended)
+## Pipeline Action (Recommended)
 
-The easiest way to use release-builder is with the reusable workflow. It encapsulates the full pipeline with correct job ordering, preventing race conditions between tag detection and changelog building.
+The easiest way to use release-builder is with the `pipeline` composite action. It runs the full release pipeline as sequential steps in a single job, preventing race conditions between tag detection and changelog building.
 
 ### Simple repo
 
@@ -247,21 +247,26 @@ concurrency:
 
 jobs:
   release:
-    uses: flowcanon/release-builder/.github/workflows/release-pipeline.yml@v2
-    with:
-      force_pr: ${{ inputs.force_pr || false }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: flowcanon/release-builder/pipeline@v2
+        with:
+          force-pr: ${{ inputs.force_pr || false }}
 ```
 
 ### With deploy step
 
-For repos that deploy on release, add a job that depends on the reusable workflow's outputs:
+For repos that deploy on release, add a job that depends on the pipeline's outputs:
 
 ```yaml
 jobs:
   release:
-    uses: flowcanon/release-builder/.github/workflows/release-pipeline.yml@v2
-    with:
-      force_pr: ${{ inputs.force_pr || false }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: pipeline
+        uses: flowcanon/release-builder/pipeline@v2
+    outputs:
+      created-tag: ${{ steps.pipeline.outputs.created-tag }}
 
   deploy:
     if: needs.release.outputs.created-tag
@@ -272,12 +277,30 @@ jobs:
       - run: ./script/deploy
 ```
 
+### With notifications
+
+Add whatever notification step you want after the pipeline, keyed on `created-tag`:
+
+```yaml
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - id: pipeline
+        uses: flowcanon/release-builder/pipeline@v2
+
+      - if: steps.pipeline.outputs.created-tag
+        uses: flowcanon/release-builder/slack-message@v2
+        with:
+          channel-id: ${{ env.SLACK_CHANNEL }}
+```
+
 ### Inputs
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
 | `version-command` | string | `""` | Override for version detection (e.g., `poetry version --short`). Auto-detects from VERSION/package.json/pyproject.toml if empty. |
-| `force_pr` | boolean | `false` | Force PR creation even if no PRs are found |
+| `force-pr` | string | `"false"` | Force PR creation even if no PRs are found |
 
 ### Outputs
 
@@ -286,13 +309,13 @@ jobs:
 | `created-tag` | The tag if one was created (truthy means a release shipped) |
 | `current-version` | The current version from detect_release |
 
-### Why use the reusable workflow?
+### Why use the pipeline action?
 
-When using composite actions directly, `detect_release` and `build_changelog` can run in parallel. If a PR title was renamed after the release PR was created, `build_changelog` may calculate a different version than what was tagged, opening a bogus release PR. The reusable workflow enforces `detect_release → build_changelog → create_pr` ordering, so `build_changelog` is skipped when a tag is created.
+When using composite actions directly across separate jobs, `detect_release` and `build_changelog` can run in parallel. If a PR title was renamed after the release PR was created, `build_changelog` may calculate a different version than what was tagged, opening a bogus release PR. The pipeline action runs all steps sequentially in one job, so `build_changelog` is skipped when a tag is created.
 
-## Composite Actions
+## Individual Actions
 
-If you need more control (e.g., custom deploy steps between detection and changelog), you can use the composite actions directly. See the sections below.
+If you need more control (e.g., custom steps between detection and changelog), you can use the individual composite actions directly. See the sections below.
 
 ## Example
 

@@ -1,0 +1,72 @@
+name: Release pipeline
+description: >
+  Runs the full release pipeline as sequential steps in a single job:
+  checkout → detect_release → build_changelog → package_version → pull_request.
+  Eliminates race conditions between tag detection and changelog building.
+
+inputs:
+  version-command:
+    description: >
+      Override for version detection (e.g., `poetry version --short`).
+      Auto-detects from VERSION/package.json/pyproject.toml if empty.
+    default: ""
+  force-pr:
+    description: Force pull request creation even if no PRs are found
+    default: "false"
+
+outputs:
+  created-tag:
+    description: The tag if one was created (truthy means a release shipped)
+    value: ${{ steps.tag.outputs.tag }}
+  current-version:
+    description: The current version from detect_release
+    value: ${{ steps.tag.outputs.current-version }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - id: version-command
+      run: |
+        custom="${{ inputs.version-command }}"
+        if [ -n "$custom" ]; then
+          echo "cmd=$custom" >> $GITHUB_OUTPUT
+        elif [ -f package.json ]; then
+          echo "cmd=node -p \"require('./package.json').version\"" >> $GITHUB_OUTPUT
+        elif [ -f pyproject.toml ]; then
+          echo "cmd=grep -Po '(?<=^version = \")([^\"]+)' pyproject.toml" >> $GITHUB_OUTPUT
+        elif [ -f VERSION ]; then
+          echo "cmd=cat VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "::error::No version source found. Set version-command input or add VERSION/package.json/pyproject.toml."
+          exit 1
+        fi
+      shell: bash
+
+    - id: tag
+      continue-on-error: true
+      uses: salsify/action-detect-and-tag-new-version@v2
+      with:
+        version-command: ${{ steps.version-command.outputs.cmd }}
+        tag-annotation-template: |
+          chore(release): {VERSION}
+
+    - id: changelog
+      if: "!steps.tag.outputs.tag"
+      uses: flowcanon/release-builder/build-changelog@v2
+
+    - if: steps.changelog.outputs.has-prs || inputs.force-pr == 'true'
+      uses: flowcanon/release-builder/package-version@v2
+      with:
+        version: ${{ steps.changelog.outputs.next-version }}
+
+    - if: steps.changelog.outputs.has-prs || inputs.force-pr == 'true'
+      uses: flowcanon/release-builder/pull-request@v2
+      with:
+        next-version: ${{ steps.changelog.outputs.next-version }}
+        notes: ${{ steps.changelog.outputs.notes }}
+        previous-version: ${{ steps.changelog.outputs.previous-version }}
+        release: ${{ steps.changelog.outputs.release }}
