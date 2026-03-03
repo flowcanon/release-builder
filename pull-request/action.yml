@@ -62,6 +62,7 @@ runs:
 
           ${{ inputs.notes }}
         author: GitHub <noreply@github.com>
+        base: ${{ github.head_ref || github.ref_name }}
         branch: release
         committer: GitHub <noreply@github.com>
         commit-message: |

@@ -65,7 +65,7 @@ runs:
         version: ${{ steps.changelog.outputs.next-version }}
 
     - if: steps.changelog.outputs.has-prs || inputs.force-pr == 'true'
-      uses: flowcanon/release-builder/pull-request@v2
+      uses: flowcanon/release-builder/pull-request@v3
       with:
         next-version: ${{ steps.changelog.outputs.next-version }}
         notes: ${{ steps.changelog.outputs.notes }}
