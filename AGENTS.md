@@ -34,6 +34,59 @@ Tagging is handled externally (e.g., `salsify/action-detect-and-tag-new-version`
 - **PR title keywords** control version bumps: `[minor]`, `(minor)`, `#minor`, `[major]`, `(major)`, `#major`. Case-insensitive. Major takes precedence over minor.
 - **Python scripts** in `build-changelog/` and `slack-message/` handle text processing. They read from stdin or environment variables and write to stdout.
 
+## Upgrading from v1 to v2
+
+### Breaking changes
+
+1. **Inputs and outputs renamed from snake_case to kebab-case**
+   - `has_prs` → `has-prs`
+   - `next_version` → `next-version`
+   - `previous_version` → `previous-version`
+   - `next_version` (input) → `next-version`
+   - `previous_version` (input) → `previous-version`
+   - `notes` and `release` are unchanged
+
+2. **`build-changelog` requires full git history**
+   - The checkout step must use `fetch-depth: 0` so all tags and history are available for changelog generation.
+
+3. **`actions/checkout` bumped to v4**
+   - Not strictly required by release-builder, but v2 examples and workflows use `actions/checkout@v4`.
+
+### Migration checklist
+
+- [ ] Update all `flowcanon/release-builder/*@v1` references to `@v2`
+- [ ] Update `actions/checkout@v3` to `actions/checkout@v4`
+- [ ] Add `fetch-depth: 0` to the checkout step before `build-changelog`
+- [ ] Rename job output mappings from snake_case to kebab-case (e.g., `has_prs:` → `has-prs:`)
+- [ ] Update all `needs.*.outputs.*` references to use kebab-case
+- [ ] Update all action input names to kebab-case (e.g., `next_version:` → `next-version:`)
+
+### Example diff
+
+```yaml
+# Before (v1)
+- uses: actions/checkout@v3
+
+- id: changelog
+  uses: flowcanon/release-builder/build-changelog@v1
+
+outputs:
+  has_prs: ${{ steps.changelog.outputs.has_prs }}
+  next_version: ${{ steps.changelog.outputs.next_version }}
+
+# After (v2)
+- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0
+
+- id: changelog
+  uses: flowcanon/release-builder/build-changelog@v2
+
+outputs:
+  has-prs: ${{ steps.changelog.outputs.has-prs }}
+  next-version: ${{ steps.changelog.outputs.next-version }}
+```
+
 ## Working on this repo
 
 - The `v2` branch is the main branch.
