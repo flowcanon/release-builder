@@ -26,11 +26,14 @@ runs:
           echo "skip=true" >> "$GITHUB_OUTPUT"
           exit 0
         fi
-        latest_tag=$(git tag --list 'v*' --sort=-version:refname | head -n1)
-        if [ -n "$latest_tag" ] && [ "$latest_tag" != "${{ inputs.previous-version }}" ]; then
-          echo "::warning::Latest tag is $latest_tag, expected ${{ inputs.previous-version }} — skipping stale PR creation"
-          echo "skip=true" >> "$GITHUB_OUTPUT"
-          exit 0
+        previous_version="${{ inputs.previous-version }}"
+        if [[ "$previous_version" == v* ]]; then
+          latest_tag=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+          if [ -n "$latest_tag" ] && [ "$latest_tag" != "$previous_version" ]; then
+            echo "::warning::Latest tag is $latest_tag, expected $previous_version — skipping stale PR creation"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
         fi
         echo "skip=false" >> "$GITHUB_OUTPUT"
       shell: bash

@@ -48,12 +48,22 @@ runs:
       shell: bash
 
     - id: tag
-      continue-on-error: true
       uses: salsify/action-detect-and-tag-new-version@v2
       with:
         version-command: ${{ steps.version-command.outputs.cmd }}
         tag-annotation-template: |
           chore(release): {VERSION}
+
+    - if: "!steps.tag.outputs.tag"
+      run: |
+        current_version="${{ steps.tag.outputs.current-version }}"
+        latest_tag=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+        latest_version="${latest_tag#v}"
+        if [ -n "$latest_version" ] && [ "$current_version" != "$latest_version" ]; then
+          echo "::error::Version ${current_version} ≠ latest tag ${latest_tag}. A release commit exists but was not tagged."
+          exit 1
+        fi
+      shell: bash
 
     - id: changelog
       if: "!steps.tag.outputs.tag"
