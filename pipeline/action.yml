@@ -67,10 +67,10 @@ runs:
 
     - id: changelog
       if: "!steps.tag.outputs.tag"
-      uses: flowcanon/release-builder/build-changelog@v2
+      uses: flowcanon/release-builder/build-changelog@v3
 
     - if: steps.changelog.outputs.has-prs || inputs.force-pr == 'true'
-      uses: flowcanon/release-builder/package-version@v2
+      uses: flowcanon/release-builder/package-version@v3
       with:
         version: ${{ steps.changelog.outputs.next-version }}
 

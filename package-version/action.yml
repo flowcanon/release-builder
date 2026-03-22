@@ -1,5 +1,5 @@
 name: Set package version
-description: Updates the version field in package.json, pyproject.toml, or a plain VERSION file.
+description: Updates the version field in all detected version sources (package.json, pyproject.toml, VERSION file).
 
 inputs:
   version:
@@ -11,51 +11,58 @@ runs:
   steps:
     - id: detect
       run: |
+        found=false
         if [ -f package.json ]; then
-          echo "type=npm" >> $GITHUB_OUTPUT
-        elif [ -f pyproject.toml ]; then
-          echo "type=python" >> $GITHUB_OUTPUT
-        elif [ -f VERSION ]; then
-          echo "type=version-file" >> $GITHUB_OUTPUT
-        else
+          echo "has-npm=true" >> $GITHUB_OUTPUT
+          found=true
+        fi
+        if [ -f pyproject.toml ]; then
+          echo "has-python=true" >> $GITHUB_OUTPUT
+          found=true
+        fi
+        if [ -f VERSION ]; then
+          echo "has-version-file=true" >> $GITHUB_OUTPUT
+          found=true
+        fi
+        if [ "$found" = false ]; then
           echo "::error::No package.json, pyproject.toml, or VERSION file found"
           exit 1
         fi
       shell: bash
 
     # npm: update package.json and package-lock.json
-    - if: steps.detect.outputs.type == 'npm'
+    - if: steps.detect.outputs.has-npm == 'true'
       uses: jossef/action-set-json-field@v2
       with:
         file: package.json
         field: version
         value: ${{ inputs.version }}
 
-    - if: steps.detect.outputs.type == 'npm'
+    - if: steps.detect.outputs.has-npm == 'true'
       uses: jossef/action-set-json-field@v2
       with:
         file: package-lock.json
         field: version
         value: ${{ inputs.version }}
 
-    - if: steps.detect.outputs.type == 'npm'
+    - if: steps.detect.outputs.has-npm == 'true'
       uses: jossef/action-set-json-field@v2
       with:
         file: package-lock.json
         field: packages..version
         value: ${{ inputs.version }}
 
-    - if: steps.detect.outputs.type == 'npm'
+    - if: steps.detect.outputs.has-npm == 'true'
       run: echo >> package.json && echo >> package-lock.json
       shell: bash
 
     # Python: update pyproject.toml
-    - if: steps.detect.outputs.type == 'python'
+    - if: steps.detect.outputs.has-python == 'true'
       run: |
         sed -i 's/^version = ".*"/version = "${{ inputs.version }}"/' pyproject.toml
       shell: bash
 
     # Plain VERSION file
-    - if: steps.detect.outputs.type == 'version-file'
+    - if: steps.detect.outputs.has-version-file == 'true'
       run: echo "${{ inputs.version }}" > VERSION
       shell: bash
