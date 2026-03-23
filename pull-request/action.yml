@@ -57,7 +57,7 @@ runs:
       uses: pr-mpt/actions-commit-hash@v3
 
     - if: steps.guard.outputs.skip != 'true'
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v8
       with:
         title: Release ${{ inputs.next-version }}
         body: |
