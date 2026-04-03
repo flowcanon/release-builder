@@ -54,7 +54,7 @@ runs:
 
     - id: commit
       if: steps.guard.outputs.skip != 'true'
-      uses: pr-mpt/actions-commit-hash@v3
+      uses: pr-mpt/actions-commit-hash@v4
 
     - if: steps.guard.outputs.skip != 'true'
       uses: peter-evans/create-pull-request@v6
