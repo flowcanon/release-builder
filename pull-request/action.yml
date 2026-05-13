@@ -19,18 +19,20 @@ runs:
   using: "composite"
   steps:
     - id: guard
+      env:
+        NEXT_VERSION: ${{ inputs.next-version }}
+        PREVIOUS_VERSION: ${{ inputs.previous-version }}
       run: |
         git fetch --tags --force
-        if git rev-parse "v${{ inputs.next-version }}" >/dev/null 2>&1; then
-          echo "::warning::Tag v${{ inputs.next-version }} already exists — skipping PR creation"
+        if git rev-parse "v${NEXT_VERSION}" >/dev/null 2>&1; then
+          echo "::warning::Tag v${NEXT_VERSION} already exists — skipping PR creation"
           echo "skip=true" >> "$GITHUB_OUTPUT"
           exit 0
         fi
-        previous_version="${{ inputs.previous-version }}"
-        if [[ "$previous_version" == v* ]]; then
+        if [[ "$PREVIOUS_VERSION" == v* ]]; then
           latest_tag=$(git tag --list 'v*' --sort=-version:refname | head -n1)
-          if [ -n "$latest_tag" ] && [ "$latest_tag" != "$previous_version" ]; then
-            echo "::warning::Latest tag is $latest_tag, expected $previous_version — skipping stale PR creation"
+          if [ -n "$latest_tag" ] && [ "$latest_tag" != "$PREVIOUS_VERSION" ]; then
+            echo "::warning::Latest tag is $latest_tag, expected $PREVIOUS_VERSION — skipping stale PR creation"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -39,16 +41,25 @@ runs:
       shell: bash
 
     - if: steps.guard.outputs.skip != 'true'
+      env:
+        NEXT_VERSION: ${{ inputs.next-version }}
+        PREVIOUS_VERSION: ${{ inputs.previous-version }}
+        NOTES: ${{ inputs.notes }}
+        HEADING_PREFIX: ${{ inputs.release == 'patch' && '###' || '##' }}
+        COMPARE_URL: ${{ github.server_url }}/${{ github.repository }}/compare/${{ inputs.previous-version }}...v${{ inputs.next-version }}
       run: |
-        echo -e "# Changelog\n" > NEXT.md
-        echo -e "${{ inputs.release == 'patch' && '###' || '##' }} [${{ inputs.next-version }}](${{ github.server_url }}/${{ github.repository }}/compare/${{ inputs.previous-version }}...v${{ inputs.next-version }}) ($(date +'%Y-%m-%d'))\n" >> NEXT.md
-        echo -e "${{ inputs.notes }}\n" >> NEXT.md
-        if [ -f CHANGELOG.md ]; then
-          cat CHANGELOG.md | sed -e '1,1d' >> NEXT.md
-        else
-          echo -e "---\n" >> NEXT.md
-          echo -e "*Changelog introduced after ${{ inputs.previous-version }}*\n" >> NEXT.md
-        fi
+        today=$(date +'%Y-%m-%d')
+        {
+          printf '# Changelog\n\n'
+          printf '%s [%s](%s) (%s)\n\n' "$HEADING_PREFIX" "$NEXT_VERSION" "$COMPARE_URL" "$today"
+          printf '%s\n\n' "$NOTES"
+          if [ -f CHANGELOG.md ]; then
+            sed -e '1,1d' CHANGELOG.md
+          else
+            printf -- '---\n\n'
+            printf '*Changelog introduced after %s*\n\n' "$PREVIOUS_VERSION"
+          fi
+        } > NEXT.md
         mv NEXT.md CHANGELOG.md
       shell: bash
 

@@ -27,7 +27,7 @@ runs:
       with:
         python-version: '3.12'
 
-    - run: pip install regex requests
+    - run: pip install --require-hashes -r ${{ github.action_path }}/requirements.txt
       shell: bash
 
     - if: inputs.status == 'pending'

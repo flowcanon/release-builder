@@ -25,7 +25,7 @@ runs:
       with:
         python-version: '3.12'
 
-    - run: pip install semver
+    - run: pip install --require-hashes -r ${{ github.action_path }}/requirements.txt
       shell: bash
 
     - id: build-changelog

@@ -2,6 +2,11 @@ version: 2
 
 updates:
   - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
     directory: "/build-changelog"
     schedule:
       interval: "weekly"
@@ -12,11 +17,26 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "github-actions"
+    directory: "/pipeline"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
     directory: "/pull-request"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "github-actions"
+    directory: "/slack-message"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "pip"
+    directory: "/build-changelog"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "pip"
     directory: "/slack-message"
     schedule:
       interval: "weekly"

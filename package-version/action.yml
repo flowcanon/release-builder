@@ -58,11 +58,15 @@ runs:
 
     # Python: update pyproject.toml
     - if: steps.detect.outputs.has-python == 'true'
+      env:
+        VERSION: ${{ inputs.version }}
       run: |
-        sed -i 's/^version = ".*"/version = "${{ inputs.version }}"/' pyproject.toml
+        python3 -c 'import os,re; v=os.environ["VERSION"]; src=open("pyproject.toml").read(); open("pyproject.toml","w").write(re.sub(r"^version\s*=\s*\".*\"", lambda m: f"version = \"{v}\"", src, count=1, flags=re.M))'
       shell: bash
 
     # Plain VERSION file
     - if: steps.detect.outputs.has-version-file == 'true'
-      run: echo "${{ inputs.version }}" > VERSION
+      env:
+        VERSION: ${{ inputs.version }}
+      run: printf '%s\n' "$VERSION" > VERSION
       shell: bash
