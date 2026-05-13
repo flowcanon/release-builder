@@ -23,7 +23,9 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      with:
+        python-version: '3.12'
 
     - run: pip install regex requests
       shell: bash
@@ -34,11 +36,13 @@ runs:
       shell: bash
       env:
         MESSAGE_TEMPLATE: images
+        SLACK_CHANNEL_ID: ${{ inputs.channel-id }}
 
     - if: steps.build-images.outputs.message
-      uses: slackapi/slack-github-action@v1.26.0
+      uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
       with:
-        channel-id: ${{ inputs.channel-id }}
+        method: chat.postMessage
+        token: ${{ env.SLACK_BOT_TOKEN }}
         payload: ${{ steps.build-images.outputs.message }}
 
     - id: build-message
@@ -46,10 +50,12 @@ runs:
       shell: bash
       env:
         RELEASE_STATUS: ${{ inputs.status }}
+        SLACK_CHANNEL_ID: ${{ inputs.channel-id }}
+        SLACK_MESSAGE_TS: ${{ inputs.message-id }}
 
     - id: send_message
-      uses: slackapi/slack-github-action@v1.26.0
+      uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
       with:
-        channel-id: ${{ inputs.channel-id }}
+        method: ${{ inputs.message-id && 'chat.update' || 'chat.postMessage' }}
+        token: ${{ env.SLACK_BOT_TOKEN }}
         payload: ${{ steps.build-message.outputs.message }}
-        update-ts: ${{ inputs.message-id }}

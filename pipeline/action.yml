@@ -25,7 +25,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         ref: ${{ github.head_ref || github.ref_name }}
         fetch-depth: 0
@@ -48,11 +48,20 @@ runs:
       shell: bash
 
     - id: tag
-      uses: salsify/action-detect-and-tag-new-version@v2
-      with:
-        version-command: ${{ steps.version-command.outputs.cmd }}
-        tag-annotation-template: |
-          chore(release): {VERSION}
+      run: |
+        current_version=$(eval "${{ steps.version-command.outputs.cmd }}")
+        echo "current-version=${current_version}" >> "$GITHUB_OUTPUT"
+        tag="v${current_version}"
+        if git rev-parse "$tag" >/dev/null 2>&1; then
+          echo "Tag $tag already exists; skipping tag creation"
+          exit 0
+        fi
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git tag -a "$tag" -m "chore(release): ${current_version}"
+        git push origin "$tag"
+        echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      shell: bash
 
     - if: "!steps.tag.outputs.tag"
       run: |

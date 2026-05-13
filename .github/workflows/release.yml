@@ -21,17 +21,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - id: tag
-        continue-on-error: true
-        uses: salsify/action-detect-and-tag-new-version@v2
-        with:
-          version-command: cat VERSION
-          tag-annotation-template: |
-            chore(release): {VERSION}
+        run: |
+          current_version=$(cat VERSION)
+          tag="v${current_version}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists; nothing to do"
+            exit 0
+          fi
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git tag -a "$tag" -m "chore(release): ${current_version}"
+          git push origin "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        shell: bash
 
     outputs:
       created-tag: ${{ steps.tag.outputs.tag }}
@@ -43,7 +50,7 @@ jobs:
     if: "!needs.detect_release.outputs.created-tag"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -64,7 +71,7 @@ jobs:
     needs: build_changelog
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: ./package-version
         with:

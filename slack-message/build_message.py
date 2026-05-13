@@ -25,6 +25,8 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_USER_ATTACHMENTS_URL = "https://github.com/user-attachments"
 MESSAGE_TEMPLATE = os.environ.get("MESSAGE_TEMPLATE", "")
 PROJECT_NAME = os.environ.get("PROJECT_NAME", "")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "")
+SLACK_MESSAGE_TS = os.environ.get("SLACK_MESSAGE_TS", "")
 PROJECT_TYPE = os.environ.get("PROJECT_TYPE", "website")
 TARGET_NAME = os.environ.get("TARGET_NAME", "")
 TARGET_URL = os.environ.get("TARGET_URL", "")
@@ -231,4 +233,8 @@ if __name__ == "__main__":
     message = build_message()
 
     if message:
+        if SLACK_CHANNEL_ID:
+            message["channel"] = SLACK_CHANNEL_ID
+        if SLACK_MESSAGE_TS:
+            message["ts"] = SLACK_MESSAGE_TS
         print(json.dumps(message))

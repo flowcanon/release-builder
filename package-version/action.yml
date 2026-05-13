@@ -32,21 +32,21 @@ runs:
 
     # npm: update package.json and package-lock.json
     - if: steps.detect.outputs.has-npm == 'true'
-      uses: jossef/action-set-json-field@v2
+      uses: jossef/action-set-json-field@890d7642122dbb2833dddd2003659bb71a2b21fe # v2.2
       with:
         file: package.json
         field: version
         value: ${{ inputs.version }}
 
     - if: steps.detect.outputs.has-npm == 'true'
-      uses: jossef/action-set-json-field@v2
+      uses: jossef/action-set-json-field@890d7642122dbb2833dddd2003659bb71a2b21fe # v2.2
       with:
         file: package-lock.json
         field: version
         value: ${{ inputs.version }}
 
     - if: steps.detect.outputs.has-npm == 'true'
-      uses: jossef/action-set-json-field@v2
+      uses: jossef/action-set-json-field@890d7642122dbb2833dddd2003659bb71a2b21fe # v2.2
       with:
         file: package-lock.json
         field: packages..version
