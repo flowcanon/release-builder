@@ -38,17 +38,28 @@ runs:
         echo "skip=false" >> "$GITHUB_OUTPUT"
       shell: bash
 
+    # The notes carry every merged PR's title, so they reach the shell through
+    # env, never pasted into the script: a title with a double quote ended the
+    # string and broke the step, and one with $(...) would have run.
     - if: steps.guard.outputs.skip != 'true'
+      env:
+        HEADING: ${{ inputs.release == 'patch' && '###' || '##' }}
+        NEXT_VERSION: ${{ inputs.next-version }}
+        PREVIOUS_VERSION: ${{ inputs.previous-version }}
+        COMPARE_URL: ${{ github.server_url }}/${{ github.repository }}/compare/${{ inputs.previous-version }}...v${{ inputs.next-version }}
+        NOTES: ${{ inputs.notes }}
       run: |
-        echo -e "# Changelog\n" > NEXT.md
-        echo -e "${{ inputs.release == 'patch' && '###' || '##' }} [${{ inputs.next-version }}](${{ github.server_url }}/${{ github.repository }}/compare/${{ inputs.previous-version }}...v${{ inputs.next-version }}) ($(date +'%Y-%m-%d'))\n" >> NEXT.md
-        echo -e "${{ inputs.notes }}\n" >> NEXT.md
-        if [ -f CHANGELOG.md ]; then
-          cat CHANGELOG.md | sed -e '1,1d' >> NEXT.md
-        else
-          echo -e "---\n" >> NEXT.md
-          echo -e "*Changelog introduced after ${{ inputs.previous-version }}*\n" >> NEXT.md
-        fi
+        {
+          printf '# Changelog\n\n'
+          printf '%s [%s](%s) (%s)\n\n' "$HEADING" "$NEXT_VERSION" "$COMPARE_URL" "$(date +'%Y-%m-%d')"
+          printf '%s\n\n' "$NOTES"
+          if [ -f CHANGELOG.md ]; then
+            sed -e '1,1d' CHANGELOG.md
+          else
+            printf -- '---\n\n'
+            printf '*Changelog introduced after %s*\n\n' "$PREVIOUS_VERSION"
+          fi
+        } > NEXT.md
         mv NEXT.md CHANGELOG.md
       shell: bash
 
